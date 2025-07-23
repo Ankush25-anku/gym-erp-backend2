@@ -42,25 +42,33 @@ app.use("/api/events", eventRoutes);
 const planRoutes = require("./Routes/planRoutes");
 app.use("/api/plans", planRoutes);
 
+// const authRoutes = require("./Routes/authRoutes");
+// app.use("/api/auth", authRoutes);
+
 const attendanceRoutes = require("./Routes/attendanceRoutes");
 app.use("/api/attendance", attendanceRoutes);
 
+// const trainerRoutes = require("./Routes/trainerRoutes");
+// app.use("/api/trainers", trainerRoutes);
 const adminTrainerRoutes = require("./Routes/admintrainerRoutes");
 app.use("/api/admintrainers", adminTrainerRoutes);
 
+// const myMembersRoutes = require("./Routes/myMembersRoutes");
+// app.use("/api/members", myMembersRoutes);
 const adminAttendanceRoutes = require("./Routes/attendenceAdminRoutes");
 app.use("/api/admin/attendance", adminAttendanceRoutes);
-
 const inventoryRoutes = require("./Routes/inventoryRoutes");
 app.use("/api/inventory", inventoryRoutes);
 
 const trainerMemberRoutes = require("./Routes/trainerMemberRoutes");
+const trainerWorkoutRoutes = require("./Routes/trainerWorkoutRoutes");
+//member route
 app.use("/api/trainer/members", trainerMemberRoutes);
 
-const trainerWorkoutRoutes = require("./Routes/trainerWorkoutRoutes");
 app.use("/api/trainer/workouts", trainerWorkoutRoutes);
 
 const trainerAttendanceRoutes = require("./Routes/trainerAttendanceRoutes");
+
 app.use("/api/trainer/attendance", trainerAttendanceRoutes);
 
 const staffmembersRoutes = require("./Routes/staffmembersRoutes");
@@ -72,6 +80,7 @@ app.use("/api/staffplans", staffplansRoutes);
 const staffattendanceRoutes = require("./Routes/staffattendanceRoutes");
 app.use("/api/staffattendance", staffattendanceRoutes);
 
+// app.use('/exercise', express.static(path.join(__dirname, 'public', 'exercise')));
 const workoutplanRoutes = require("./Routes/workoutplanRoutes");
 app.use("/api/workoutplan", workoutplanRoutes);
 
@@ -83,6 +92,9 @@ app.use("/api/adminstaff", adminStaffRoutes);
 
 const expensesRoutes = require("./Routes/expensesRoutes");
 app.use("/api/expenses", expensesRoutes);
+
+// const userRoutes = require("./Routes/users");
+// app.use("/api/users", userRoutes);
 
 const memberWorkoutPlanRoutes = require("./Routes/memberWorkoutPlanRoutes");
 app.use("/api/member/workout-plans", memberWorkoutPlanRoutes);
@@ -98,14 +110,12 @@ app.use("/api", attend);
 
 const incomeRoutes = require("./Routes/incomeRoutes");
 app.use("/api/income", incomeRoutes);
-
 const gymRoutes = require("./Routes/gymRoutes");
-app.use("/api/gyms", gymRoutes);
+app.use("/api/gyms", gymRoutes); // ✅ this is critical
 
 const userManagementRoutes = require("./Routes/userRoutes");
 app.use("/api/user-management", userManagementRoutes);
-
-const authRoutes = require("./Routes/auth");
+const authRoutes = require("./Routes/auth"); // ✅ Fix the casing
 app.use("/api/auth", authRoutes);
 
 const notificationRoutes = require("./Routes/notificationRoutes");
@@ -114,6 +124,7 @@ app.use("/api/notifications", notificationRoutes);
 const paymentRoutes = require("./Routes/paymentRoutes");
 app.use("/api/payments", paymentRoutes);
 
+// Load the routes
 const rolesPermissionRoutes = require("./Routes/rolesPermissionRoutes");
 app.use("/api/roles-permissions", rolesPermissionRoutes);
 
@@ -130,9 +141,16 @@ const clerkUserRoutes = require("./Routes/clerkUserRoutes");
 app.use("/api/clerkusers", clerkUserRoutes);
 console.log("✅ Clerk user routes loaded");
 
+// const userRoutes = require("./routes/userRoutes");
+// app.use("/api/users", userRoutes);
+
 app.get("/", (req, res) => {
   res.json({ success: true, message: "Working API" });
 });
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
 
-// ✅ Export app for Vercel — do NOT use app.listen()
-module.exports = app;
+// Let me know if you want the frontend payment button integration (with Razorpay popup or Stripe checkout) as well.
