@@ -1,35 +1,34 @@
-// Routes/clerkWebhookRoutes.js
 const express = require("express");
+const { Webhook } = require("svix");
 const router = express.Router();
-const ClerkUser = require("../models/ClerkUser");
+const bodyParser = require("body-parser");
+require("dotenv").config(); // ✅ Load env
 
-router.post("/webhook", async (req, res) => {
-  const event = req.body;
+const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
+router.use(bodyParser.raw({ type: "application/json" }));
+
+router.post("/", async (req, res) => {
+  const payload = req.body;
+  const headers = req.headers;
+
+  const wh = new Webhook(WEBHOOK_SECRET);
+
+  let evt;
   try {
-    if (event.type === "user.created") {
-      const userData = event.data;
-      const fullName = `${userData.first_name} ${userData.last_name}`.trim();
-
-      await ClerkUser.findOneAndUpdate(
-        { sub: userData.id },
-        {
-          sub: userData.id,
-          email: userData.email_addresses?.[0]?.email_address || "",
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          fullName,
-          role: userData.public_metadata?.role || "User",
-        },
-        { upsert: true, new: true }
-      );
-    }
-
-    res.status(200).json({ message: "Webhook handled" });
-  } catch (error) {
-    console.error("Webhook error:", error);
-    res.status(500).json({ error: "Webhook processing failed" });
+    evt = wh.verify(payload, headers);
+  } catch (err) {
+    console.error("❌ Webhook verification failed:", err.message);
+    return res.status(400).json({ error: "Invalid signature" });
   }
+
+  const eventType = evt.type;
+  const eventData = evt.data;
+
+  console.log(`✅ Received Clerk event: ${eventType}`);
+  console.log("Event Data:", eventData);
+
+  res.status(200).json({ received: true });
 });
 
 module.exports = router;
