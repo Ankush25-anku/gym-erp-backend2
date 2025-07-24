@@ -25,12 +25,9 @@ app.use(express.json());
 
 // DB Connection
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ DB Error:", err));
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // Routes
 const memberRoutes = require("./Routes/memberRoutes");

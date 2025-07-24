@@ -53,7 +53,6 @@
 //   }
 // });
 
-
 // // ✅ Get All Members (only for logged-in user)
 // router.get("/", protect, async (req, res) => {
 //   try {
@@ -75,8 +74,6 @@
 //     res.status(500).json({ error: err.message });
 //   }
 // });
-
-
 
 // // ✅ Update Member
 // router.put('/:id', protect, async (req, res) => {
@@ -256,17 +253,13 @@
 //   }
 // });
 
-
-
-
 // module.exports = router;
 
-
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Member = require('../models/Member');
-const mongoose = require('mongoose');
-const Expense = require('../models/Expense');
+const Member = require("../models/Member");
+const mongoose = require("mongoose");
+const Expense = require("../models/Expense");
 
 // 💡 Utility: Revenue based on plan type
 const getPlanPrice = (plan) => {
@@ -282,7 +275,7 @@ const getPlanPrice = (plan) => {
   }
 };
 
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const newMember = new Member({
       fullname: req.body.fullname,
@@ -307,8 +300,10 @@ router.post('/', async (req, res) => {
     const saved = await newMember.save();
     res.status(201).json(saved);
   } catch (error) {
-    console.error('❌ POST Error:', error);
-    res.status(500).json({ message: 'Error creating member', error: error.message });
+    console.error("❌ POST Error:", error);
+    res
+      .status(500)
+      .json({ message: "Error creating member", error: error.message });
   }
 });
 
@@ -317,12 +312,26 @@ router.get("/", async (req, res) => {
     const { gymId, userEmail } = req.query;
     const filter = {};
 
-    if (userEmail) filter.userEmail = userEmail;
-    if (gymId && gymId !== "all") {
-      filter.gymId = new mongoose.Types.ObjectId(gymId);
+    if (userEmail) {
+      filter.userEmail = userEmail;
     }
 
+    if (gymId && gymId !== "all") {
+      if (mongoose.Types.ObjectId.isValid(gymId)) {
+        filter.gymId = new mongoose.Types.ObjectId(gymId);
+      } else {
+        return res.status(400).json({ error: "Invalid gymId" });
+      }
+    }
+
+    console.log("🔍 Fetching members with filter:", filter);
+
     const members = await Member.find(filter).populate("gymId", "name");
+
+    if (members.length === 0) {
+      console.warn("⚠️ No members found with the given filters.");
+    }
+
     res.json(members);
   } catch (err) {
     console.error("❌ Member fetch failed:", err);
@@ -330,7 +339,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const memberId = req.params.id;
 
@@ -353,7 +362,7 @@ router.put('/:id', async (req, res) => {
       emergency = {},
       health = {},
       gymId,
-      createdBy
+      createdBy,
     } = req.body;
 
     if (gymId && !mongoose.Types.ObjectId.isValid(gymId)) {
@@ -382,7 +391,9 @@ router.put('/:id', async (req, res) => {
     );
 
     if (!updated) {
-      return res.status(404).json({ error: "Member not found or not authorized" });
+      return res
+        .status(404)
+        .json({ error: "Member not found or not authorized" });
     }
 
     res.json(updated);
@@ -392,24 +403,28 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const { createdBy } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: 'Invalid member ID format' });
+    return res.status(400).json({ message: "Invalid member ID format" });
   }
 
   try {
     const deleted = await Member.findOneAndDelete({ _id: id, createdBy });
     if (!deleted) {
-      return res.status(404).json({ message: 'Member not found or not authorized' });
+      return res
+        .status(404)
+        .json({ message: "Member not found or not authorized" });
     }
 
-    res.status(200).json({ message: 'Member deleted successfully' });
+    res.status(200).json({ message: "Member deleted successfully" });
   } catch (error) {
-    console.error('Delete Error:', error.message || error);
-    res.status(500).json({ message: 'Internal Server Error', error: error.message });
+    console.error("Delete Error:", error.message || error);
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 });
 
@@ -447,7 +462,8 @@ router.get("/revenue/breakdown", async (req, res) => {
       const date = new Date(member.joined);
       const monthShort = date.toLocaleString("default", { month: "short" });
       const planPrice = getPlanPrice(member.plan);
-      revenueByMonth[monthShort] = (revenueByMonth[monthShort] || 0) + planPrice;
+      revenueByMonth[monthShort] =
+        (revenueByMonth[monthShort] || 0) + planPrice;
     });
 
     const expenses = await Expense.find(filter);
@@ -457,11 +473,24 @@ router.get("/revenue/breakdown", async (req, res) => {
       if (!expense.date || isNaN(new Date(expense.date))) return;
       const date = new Date(expense.date);
       const monthShort = date.toLocaleString("default", { month: "short" });
-      expenseByMonth[monthShort] = (expenseByMonth[monthShort] || 0) + expense.amount;
+      expenseByMonth[monthShort] =
+        (expenseByMonth[monthShort] || 0) + expense.amount;
     });
 
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
 
     const monthlyRevenue = months.map((month) => ({
       month,
@@ -476,7 +505,9 @@ router.get("/revenue/breakdown", async (req, res) => {
     return res.json({ monthlyRevenue, monthlyExpense });
   } catch (err) {
     console.error("❌ Error generating revenue breakdown:", err);
-    res.status(500).json({ error: "Failed to generate revenue/expense breakdown" });
+    res
+      .status(500)
+      .json({ error: "Failed to generate revenue/expense breakdown" });
   }
 });
 
