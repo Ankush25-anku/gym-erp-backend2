@@ -34,7 +34,6 @@ router.post("/test", express.raw({ type: "application/json" }), (req, res) => {
   }
 });
 
-
 /**
  * -----------------------------------------------------
  * 2) PRODUCTION ENDPOINT (WITH Svix VERIFICATION)
@@ -42,21 +41,29 @@ router.post("/test", express.raw({ type: "application/json" }), (req, res) => {
  *    URL: POST /api/webhook
  * -----------------------------------------------------
  */
-router.post("/", express.raw({ type: "application/json" }), async (req, res) => {
-  const payload = req.body; // raw Buffer
-  const headers = req.headers;
-  const wh = new Webhook(WEBHOOK_SECRET);
+router.post(
+  "/",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const payload = req.body; // raw Buffer
+    const headers = req.headers;
+    const wh = new Webhook(WEBHOOK_SECRET);
 
-  try {
-    const evt = wh.verify(payload, headers);
-    console.log(`✅ Received Clerk event: ${evt.type}`);
-    console.log("Event Data:", evt.data);
+    try {
+      const evt = wh.verify(payload, headers);
+      console.log(`✅ Received Clerk event: ${evt.type}`);
+      console.log("Event Data:", evt.data);
 
-    return res.status(200).json({ received: true });
-  } catch (err) {
-    console.error("❌ Webhook verification failed:", err.message);
-    return res.status(400).json({ error: "Invalid signature" });
+      return res.status(200).json({ received: true });
+    } catch (err) {
+      console.error("❌ Webhook verification failed:", err.message);
+      return res.status(400).json({ error: "Invalid signature" });
+    }
   }
+);
+
+router.get("/", (req, res) => {
+  res.json({ message: "Webhook endpoint is up and running!" });
 });
 
 module.exports = router;
