@@ -99,7 +99,7 @@ app.use("/api/member/workout-plans", memberWorkoutPlanRoutes);
 const memberAttendanceRoutes = require("./Routes/memberAttendanceRoutes");
 app.use("/api/member-attendance", memberAttendanceRoutes);
 
-const webhookRoutes = require("./routes/webhook");
+const webhookRoutes = require("./Routes/webhookRoutes");
 app.use("/api/webhook", webhookRoutes);
 
 const attend = require("./Routes/attend");
