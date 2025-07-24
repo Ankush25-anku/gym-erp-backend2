@@ -21,6 +21,10 @@ app.use(
   })
 );
 
+const webhookRoutes = require("./Routes/webhookRoutes");
+app.use("/api/webhook", webhookRoutes);
+console.log("✅ /api/webhook route mounted");
+
 app.use(express.json());
 
 // DB Connection
@@ -99,9 +103,7 @@ app.use("/api/member/workout-plans", memberWorkoutPlanRoutes);
 const memberAttendanceRoutes = require("./Routes/memberAttendanceRoutes");
 app.use("/api/member-attendance", memberAttendanceRoutes);
 
-const webhookRoutes = require("./Routes/webhookRoutes");
-app.use("/api/webhook", webhookRoutes);
-console.log("✅ /api/webhook route mounted");
+
 const userRoutes = require("./Routes/users");
 app.use("/api/users", userRoutes);
 
