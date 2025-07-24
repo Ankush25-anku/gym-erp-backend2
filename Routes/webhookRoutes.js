@@ -1,6 +1,6 @@
 const express = require("express");
 const { Webhook } = require("svix");
-const UserModel = require("../models/usermodel"); // ensure correct path
+const UserModel = require("../models/User"); // ensure correct path
 
 const router = express.Router();
 const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
