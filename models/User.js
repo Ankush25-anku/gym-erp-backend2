@@ -62,15 +62,37 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
-    clerkId: { type: String, required: true, unique: true, index: true },
-    name: { type: String },
-    email: { type: String, index: true },
-    avatarUrl: { type: String },
-    phoneNumber: { type: String },
-    role: { type: String, default: "owner" },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
-    raw: { type: Object }, // optional: store the whole Clerk payload
+    clerkId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      index: true,
+    },
+    firstName: String,
+    lastName: String,
+    fullName: String,
+    imageUrl: String,
+
+    // Whatever else you already store in your ERP:
+    role: {
+      type: String,
+      enum: ["superadmin", "admin", "trainer", "member", "staff", "user"],
+      default: "user",
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive", "blocked"],
+      default: "active",
+    },
+    phone: String,
+
+    metadata: mongoose.Schema.Types.Mixed,
   },
   { timestamps: true }
 );

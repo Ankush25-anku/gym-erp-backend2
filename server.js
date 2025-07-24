@@ -102,6 +102,9 @@ app.use("/api/member-attendance", memberAttendanceRoutes);
 const webhookRoutes = require("./Routes/webhookRoutes");
 app.use("/api/webhook", webhookRoutes);
 console.log("✅ /api/webhook route mounted");
+const userRoutes = require("./Routes/users");
+app.use("/api/users", userRoutes);
+
 
 const attend = require("./Routes/attend");
 app.use("/api", attend);
@@ -129,8 +132,6 @@ app.use("/api/roles-permissions", rolesPermissionRoutes);
 const superAdminUserRoutes = require("./Routes/superAdminUserRoutes");
 app.use("/api/superadmin/users", superAdminUserRoutes);
 
-const userRoutes = require("./Routes/users");
-app.use("/api/users", userRoutes);
 
 const superadminRoutes = require("./Routes/superadminRoutes");
 app.use("/api/superadmin", superadminRoutes);
