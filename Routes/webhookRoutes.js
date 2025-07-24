@@ -45,22 +45,32 @@ router.post(
   "/",
   express.raw({ type: "application/json" }),
   async (req, res) => {
-    const payload = req.body; // raw Buffer
-    const headers = req.headers;
     const wh = new Webhook(WEBHOOK_SECRET);
+    let evt;
 
     try {
-      const evt = wh.verify(payload, headers);
-      console.log(`✅ Received Clerk event: ${evt.type}`);
-      console.log("Event Data:", evt.data);
-
-      return res.status(200).json({ received: true });
+      evt = wh.verify(req.body, req.headers); // Verify signature
     } catch (err) {
       console.error("❌ Webhook verification failed:", err.message);
       return res.status(400).json({ error: "Invalid signature" });
     }
+
+    // Now safely use the event
+    const eventType = evt.type;
+    const userData = evt.data; // This will contain the "user" object
+
+    console.log(`✅ Clerk Event Received: ${eventType}`);
+    console.log("User Data:", userData);
+
+    // Example: store user info in DB
+    if (eventType === "user.created") {
+      // Save userData.id, userData.email_addresses, userData.first_name, etc.
+    }
+
+    return res.status(200).json({ success: true });
   }
 );
+
 
 router.get("/", (req, res) => {
   res.json({ message: "Webhook endpoint is up and running!" });
