@@ -41,35 +41,35 @@ router.post("/test", express.raw({ type: "application/json" }), (req, res) => {
  *    URL: POST /api/webhook
  * -----------------------------------------------------
  */
-router.post(
-  "/",
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    const wh = new Webhook(WEBHOOK_SECRET);
-    let evt;
+router.post("/", express.raw({ type: "application/json" }), (req, res) => {
+  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
-    try {
-      evt = wh.verify(req.body, req.headers); // Verify signature
-    } catch (err) {
-      console.error("❌ Webhook verification failed:", err.message);
-      return res.status(400).json({ error: "Invalid signature" });
-    }
+  console.log("▶︎ /api/webhook hit");
+  console.log("🔐 Secret loaded?", !!WEBHOOK_SECRET, WEBHOOK_SECRET ? `(len=${WEBHOOK_SECRET.length})` : "");
+  console.log("▶︎ headers:", {
+    "svix-id": req.headers["svix-id"],
+    "svix-timestamp": req.headers["svix-timestamp"],
+    "svix-signature-present": !!req.headers["svix-signature"],
+  });
+  console.log("▶︎ body is buffer?", Buffer.isBuffer(req.body), "size:", Buffer.isBuffer(req.body) ? req.body.length : 0);
 
-    // Now safely use the event
-    const eventType = evt.type;
-    const userData = evt.data; // This will contain the "user" object
-
-    console.log(`✅ Clerk Event Received: ${eventType}`);
-    console.log("User Data:", userData);
-
-    // Example: store user info in DB
-    if (eventType === "user.created") {
-      // Save userData.id, userData.email_addresses, userData.first_name, etc.
-    }
-
-    return res.status(200).json({ success: true });
+  if (!WEBHOOK_SECRET) {
+    return res.status(500).json({ error: "Server misconfigured: missing CLERK_WEBHOOK_SECRET" });
   }
-);
+
+  const { Webhook } = require("svix");
+  const wh = new Webhook(WEBHOOK_SECRET);
+
+  try {
+    const evt = wh.verify(req.body, req.headers);
+    console.log(`✅ Verified: ${evt.type}`);
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error("❌ Verification failed:", err.message);
+    return res.status(400).json({ error: "Invalid signature" });
+  }
+});
+
 
 
 router.get("/", (req, res) => {
