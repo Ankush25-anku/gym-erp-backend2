@@ -1,79 +1,97 @@
-// Routes/webhookRoutes.js
 const express = require("express");
 const { Webhook } = require("svix");
+const UserModel = require("../models/usermodel"); // ensure correct path
+
 const router = express.Router();
-require("dotenv").config();
+const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
-const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+if (!CLERK_WEBHOOK_SECRET) {
+  console.warn("⚠️ CLERK_WEBHOOK_SECRET not set in .env");
+}
 
-/**
- * -----------------------------------------------------
- * 1) TEMP ENDPOINT (no signature verification)
- *    Call this with Postman to quickly confirm the route
- *    is reachable and you see the payload.
- *    URL: POST /api/webhook/test
- * -----------------------------------------------------
- */
-router.post("/test", express.raw({ type: "application/json" }), (req, res) => {
-  let raw;
-  if (Buffer.isBuffer(req.body)) {
-    raw = req.body.toString();
-  } else if (typeof req.body === "object") {
-    raw = JSON.stringify(req.body);
-  } else {
-    raw = req.body || "";
+// Clerk requires raw body for signature verification
+router.post(
+  "/clerk",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    if (!CLERK_WEBHOOK_SECRET) {
+      return res.status(500).json({ error: "Server config error" });
+    }
+
+    const svix_id = req.headers["svix-id"];
+    const svix_timestamp = req.headers["svix-timestamp"];
+    const svix_signature = req.headers["svix-signature"];
+
+    if (!svix_id || !svix_timestamp || !svix_signature) {
+      return res.status(400).send("Missing Svix headers");
+    }
+
+    const payload = req.body; // raw Buffer
+    const body = payload.toString();
+
+    const wh = new Webhook(CLERK_WEBHOOK_SECRET);
+
+    let evt;
+    try {
+      evt = wh.verify(body, {
+        "svix-id": svix_id,
+        "svix-timestamp": svix_timestamp,
+        "svix-signature": svix_signature,
+      });
+    } catch (err) {
+      console.error("❌ Webhook verification failed:", err);
+      return res.status(400).send("Webhook verification failed");
+    }
+
+    const { id: clerkUserId, ...userData } = evt.data;
+    const eventType = evt.type;
+    console.log(`Clerk Webhook Event: ${eventType} for Clerk ID: ${clerkUserId}`);
+
+    try {
+      if (eventType === "user.created" || eventType === "user.updated") {
+        const dataToSync = {
+          clerkId: clerkUserId,
+          name: `${userData.first_name || ""} ${userData.last_name || ""}`.trim(),
+          email: userData.email_addresses?.[0]?.email_address || "dummy@gmail.com",
+          avatarUrl: userData.image_url,
+          phoneNumber:
+            userData.phone_numbers?.[0]?.phone_number || "1111122222",
+          role: userData.private_metadata?.role || "owner",
+        };
+
+        const upsertedUser = await UserModel.findOneAndUpdate(
+          { clerkId: dataToSync.clerkId },
+          {
+            $set: {
+              ...dataToSync,
+              updatedAt: new Date(),
+            },
+            $setOnInsert: {
+              createdAt: new Date(),
+            },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        console.log(`✅ Synced user ${dataToSync.clerkId}`);
+        return res
+          .status(200)
+          .json({ message: "User synced successfully", user: upsertedUser });
+      }
+
+      if (eventType === "user.deleted") {
+        await UserModel.deleteOne({ clerkId: clerkUserId });
+        console.log(`🗑️ Deleted user ${clerkUserId}`);
+        return res.status(200).json({ message: "User deleted successfully" });
+      }
+
+      console.log("Unhandled event type:", eventType);
+      return res.status(200).send("Event received");
+    } catch (error) {
+      console.error("Error processing webhook:", error);
+      return res.status(500).send("Webhook processing failed");
+    }
   }
-
-  console.log("🔍 [TEST] Webhook raw payload:", raw);
-
-  try {
-    const json = JSON.parse(raw || "{}");
-    return res.status(200).json({ received: true, test: true, parsed: json });
-  } catch (e) {
-    return res.status(200).json({ received: true, test: true, raw });
-  }
-});
-
-/**
- * -----------------------------------------------------
- * 2) PRODUCTION ENDPOINT (WITH Svix VERIFICATION)
- *    This is what Clerk should call.
- *    URL: POST /api/webhook
- * -----------------------------------------------------
- */
-router.post("/", express.raw({ type: "application/json" }), (req, res) => {
-  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
-
-  console.log("▶︎ /api/webhook hit");
-  console.log("🔐 Secret loaded?", !!WEBHOOK_SECRET, WEBHOOK_SECRET ? `(len=${WEBHOOK_SECRET.length})` : "");
-  console.log("▶︎ headers:", {
-    "svix-id": req.headers["svix-id"],
-    "svix-timestamp": req.headers["svix-timestamp"],
-    "svix-signature-present": !!req.headers["svix-signature"],
-  });
-  console.log("▶︎ body is buffer?", Buffer.isBuffer(req.body), "size:", Buffer.isBuffer(req.body) ? req.body.length : 0);
-
-  if (!WEBHOOK_SECRET) {
-    return res.status(500).json({ error: "Server misconfigured: missing CLERK_WEBHOOK_SECRET" });
-  }
-
-  const { Webhook } = require("svix");
-  const wh = new Webhook(WEBHOOK_SECRET);
-
-  try {
-    const evt = wh.verify(req.body, req.headers);
-    console.log(`✅ Verified: ${evt.type}`);
-    return res.status(200).json({ received: true });
-  } catch (err) {
-    console.error("❌ Verification failed:", err.message);
-    return res.status(400).json({ error: "Invalid signature" });
-  }
-});
-
-
-
-router.get("/", (req, res) => {
-  res.json({ message: "Webhook endpoint is up and running!" });
-});
+);
 
 module.exports = router;
